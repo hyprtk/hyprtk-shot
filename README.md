@@ -35,8 +35,9 @@ prompt.
 ```
 
 Requirements: `python3` + PySide6 (Qt Quick), `grim`, `wl-clipboard`
-(`wl-copy`), and libnotify for the "saved" notification. `slurp` is optional
-and only used by `--slurp-region`-style cross-output selection in v0.2.
+(`wl-copy`), and libnotify for the "saved" notification. `slurp` is not needed
+for the overlay; it becomes an option for cross-output region selection in
+v0.2.
 
 Debian/Ubuntu ship PySide6 without the QML bindings; the installer detects that
 and builds a private venv, the same fallback the editor and terminal use.

@@ -26,6 +26,6 @@ overlay for selection, in-place annotation, save or copy.
 - **Desktop integration**: PySide6/QML with the suite's pywal palette, a v09
   suite icon, absolute `Exec=`/`Icon=` desktop entry, `--system` and
   `--uninstall` installers, PyPI-venv fallback for Debian/Ubuntu.
-- **Tests**: 60 unit tests (capture argv and geometry, renderer pixel checks,
+- **Tests**: 87 unit tests (capture argv and geometry, renderer pixel checks,
   store, settings, CLI, docs), `qmllint`, and a headless boot check that drives
   a real capture session.

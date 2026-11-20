@@ -9,6 +9,7 @@ from pathlib import Path
 from unittest import mock
 
 from hyprtk_shot import cli
+from hyprtk_shot.capture import Output
 
 # 1x1 transparent PNG: enough for the no-editor path, which never decodes it
 # when the format is PNG.
@@ -141,7 +142,7 @@ class MainTest(unittest.TestCase):
         self.assertIn("grim is not installed", err)
 
     def test_list_outputs(self):
-        rows = [cli.outputs.__globals__["Output"]("DP-1", 0, 0, 3840, 1080, 1.0, True)]
+        rows = [Output("DP-1", 0, 0, 3840, 1080, 1.0, True)]
         with mock.patch.object(cli, "outputs", return_value=rows):
             status, out, _ = self.run_cli("--list-outputs")
         self.assertEqual(status, 0)

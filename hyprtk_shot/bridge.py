@@ -17,7 +17,7 @@ from PySide6.QtCore import Property, QObject, QRectF, QTimer, Signal, Slot
 from PySide6.QtGui import QColor, QGuiApplication, QImage
 
 from . import __version__, palette
-from .annotate import Shape, render, render_to_png
+from .annotate import Shape, render
 from .capture import CaptureError, MODES, capture, resolve_target
 from .settings import Settings
 from .store import History, copy_to_clipboard, default_dir, human_size, make_name, save_image, unique_path
@@ -79,6 +79,7 @@ class Bridge(QObject):
         self._last_error = ""
         self._toast_text = ""
         self._recent = self._load_recent()
+        self._rev = 0
 
     # -- properties ------------------------------------------------------
     @Property("QVariantMap", notify=paletteChanged)
@@ -188,8 +189,6 @@ class Bridge(QObject):
         return self._toast_text
 
     # -- helpers ---------------------------------------------------------
-    _rev = 0
-
     def session(self) -> Session | None:
         return self._session
 
