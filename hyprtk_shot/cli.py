@@ -251,10 +251,10 @@ def main(argv: list[str] | None = None) -> int:
         from .app import run
         from .store import History
 
-        if mode == "open":
-            if not opts.file:
-                print(f"{BIN_NAME}: open needs an image path", file=sys.stderr)
-                return 2
+        if mode == "open" and not opts.file:
+            print(f"{BIN_NAME}: open needs an image path", file=sys.stderr)
+            return 2
+        if opts.file:
             target = Path(opts.file).expanduser()
             if not target.is_file():
                 print(f"{BIN_NAME}: no such file: {target}", file=sys.stderr)
