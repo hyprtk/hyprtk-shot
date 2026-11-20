@@ -155,6 +155,39 @@ class MainTest(unittest.TestCase):
         self.assertEqual(status, 1)
         self.assertIn("grim is not installed", err)
 
+
+    def test_window_flag_is_passed_to_the_resolver(self):
+        with mock.patch.object(cli, "resolve_target",
+                               return_value={"mode": "window", "geometry": "0,0 10x10",
+                                             "output": None, "label": "Picked"}) as resolve, \
+                mock.patch.object(cli, "capture", return_value=PNG):
+            status, _, _ = self.run_cli("window", "--no-edit", "--window", "0x55",
+                                        "--save", str(self.dir / "w.png"))
+        self.assertEqual(status, 0)
+        self.assertEqual(resolve.call_args.kwargs.get("window"), "0x55")
+
+    def test_slurp_flag_parses(self):
+        self.assertEqual(cli.parse(["--slurp"]).picker, "slurp")
+        self.assertEqual(cli.parse(["--overlay"]).picker, "overlay")
+
+    def test_slurp_picks_the_region_before_capturing(self):
+        target = self.dir / "slurped.png"
+        target_ref = {"mode": "region", "geometry": "0,0 120x80", "output": None,
+                      "label": "Region", "logical_width": 120}
+        with mock.patch("hyprtk_shot.capture.select_region", return_value="0,0 120x80") as pick, \
+                mock.patch.object(cli, "resolve_target", return_value=target_ref) as resolve, \
+                mock.patch.object(cli, "capture", return_value=PNG):
+            status, _, _ = self.run_cli("region", "--no-edit", "--slurp", "--save", str(target))
+        self.assertEqual(status, 0)
+        pick.assert_called_once()
+        self.assertEqual(resolve.call_args.kwargs.get("region"), "0,0 120x80")
+        self.assertTrue(target.is_file())
+
+    def test_slurp_cancel_exits_three(self):
+        with mock.patch("hyprtk_shot.capture.select_region", return_value=None):
+            status, _, _ = self.run_cli("region", "--no-edit", "--slurp")
+        self.assertEqual(status, 3)
+
     def test_list_outputs(self):
         rows = [Output("DP-1", 0, 0, 3840, 1080, 1.0, True)]
         with mock.patch.object(cli, "outputs", return_value=rows):

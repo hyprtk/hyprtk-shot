@@ -152,6 +152,22 @@ class ResolveTargetTest(unittest.TestCase):
         self.assertEqual(target["geometry"], "4,5 600x400")
         self.assertEqual(target["label"], "Doc")
 
+    def test_window_picker_address_wins_over_focus(self):
+        picked = cap.Window("0x2", "Picked", "app", 10, 20, 500, 400, 0, False, 3)
+        focused = cap.Window("0x1", "Focused", "app", 0, 0, 400, 300, 0, False, 0)
+        with mock.patch.object(cap, "windows", return_value=[focused, picked]), \
+                mock.patch.object(cap, "active_window", return_value=focused):
+            target = cap.resolve_target("window", window="0x2")
+        self.assertEqual(target["geometry"], "10,20 500x400")
+        self.assertEqual(target["label"], "Picked")
+
+    def test_closed_window_falls_back_to_the_focused_one(self):
+        focused = cap.Window("0x1", "Focused", "app", 0, 0, 400, 300, 0, False, 0)
+        with mock.patch.object(cap, "windows", return_value=[focused]), \
+                mock.patch.object(cap, "active_window", return_value=focused):
+            target = cap.resolve_target("window", window="0xdead")
+        self.assertEqual(target["geometry"], "0,0 400x300")
+
     def test_window_without_a_window(self):
         with mock.patch.object(cap, "active_window", return_value=None):
             with self.assertRaises(cap.CaptureError):

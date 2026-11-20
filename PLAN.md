@@ -1,7 +1,7 @@
 # hyprtk-shot — plan
 
-Status: **v0.1.0 scaffolded 2026-11-20**, not yet released. The app runs, the
-gate is green, and the suite wiring is documented below but not applied.
+Status: **v0.2.0 in progress 2026-11-20** (v0.1.0/v0.1.1 released and wired
+into the suite). Batches land here as they are finished.
 
 ## Decisions (and why)
 
@@ -64,15 +64,15 @@ built-in crop, multi-monitor overlay in one window.
       Hyprland cannot be asked to move a window by the client, so use
       `hyprctl dispatch moveactive exact x y` for dragging and a float rule for
       placement; test on a two-output layout first.
-- [ ] **Cross-output region** — `--slurp-region` and a `Settings` option that
-      asks slurp instead of drawing in the overlay (slurp already spans all
-      outputs and prints `x,y WxH`).
-- [ ] **Window picker** — a grid of `hyprctl clients` entries with titles, for
-      when the window to capture is not focused.
-- [ ] **Crop after the fact** — move/resize handles on the selection after
-      annotations exist (annotations are stored in image coordinates already).
-- [ ] **Selection aspect lock** (`Shift`) and arrow-key nudging.
-- [ ] **Undo for selection changes**, not just shapes.
+- [x] **Cross-output region** — `--slurp` / `picker: slurp`; slurp spans all
+      outputs and prints `x,y WxH`, the overlay stays the default.
+- [x] **Window picker** — the Window card lists `hyprctl clients` with titles
+      (focused row first); `--window ADDRESS`.
+- [x] **Crop after the fact** — eight grips resize the selection after
+      annotations exist (anchored opposite edge, `selection.resize()`).
+- [x] **Selection aspect lock** (`Shift` = square) and arrow-key nudging
+      (1 px, `Shift` = 10 px, clamped).
+- [x] **Undo for selection changes**, not just shapes (snapshot history).
 
 ## v0.3 — polish and reach
 

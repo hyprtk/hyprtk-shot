@@ -80,20 +80,50 @@ def main() -> int:
     if bridge.selectionInfo.get("width") != 640:
         fail(f"the default selection is not the whole image: {bridge.selectionInfo}")
 
-    # Annotations: add, undo, redo, and save a cropped selection.
+    # Selection maths the overlay relies on: arrow-key nudging, clamped at the
+    # edge, and one undo step per action.
     bridge.setSelection(20, 20, 200, 120)
+    bridge.nudgeSelection(1, 0)
+    if bridge.selectionInfo.get("x") != 21:
+        fail(f"nudge did not move the selection: {bridge.selectionInfo}")
+    bridge.nudgeSelection(-1000, 0)
+    if bridge.selectionInfo.get("x") != 0:
+        fail(f"nudge did not stop at the left edge: {bridge.selectionInfo}")
+    before_nudge = bridge.selectionInfo
+    bridge.undo()
+    if bridge.selectionInfo.get("x") != 21:
+        fail(f"undo did not revert a nudge: {bridge.selectionInfo}")
+
+    # A selection change is itself undoable, not only annotations.
+    bridge.setSelection(20, 20, 200, 120)
+    if not bridge.canUndo:
+        fail("a selection change did not create an undo step")
+    bridge.undo()
+    if bridge.selectionInfo.get("width") != before_nudge.get("width"):
+        fail(f"undo did not restore the previous selection: {bridge.selectionInfo}")
+    bridge.redo()
+    if bridge.selectionInfo.get("width") != 200:
+        fail(f"redo did not restore the selection: {bridge.selectionInfo}")
+
+    # Annotations: add, undo, redo, and save a cropped selection.
     bridge.setTool("arrow")
     bridge.setColor("#f9e2af")
     bridge.addShapeObject(Shape(kind="arrow", points=[(30.0, 30.0), (200.0, 130.0)],
                                 color="#f9e2af", width=6.0))
-    if not bridge.canUndo:
-        fail("an added shape did not enable undo")
+    if not bridge.session().shapes:
+        fail("the annotation was not added")
     bridge.undo()
-    if bridge.canUndo:
+    if bridge.session().shapes:
         fail("undo did not remove the shape")
     bridge.redo()
-    if not bridge.canUndo:
+    if len(bridge.session().shapes) != 1:
         fail("redo did not restore the shape")
+    bridge.clearShapes()
+    if bridge.session().shapes:
+        fail("clear did not empty the annotations")
+    bridge.undo()
+    if len(bridge.session().shapes) != 1:
+        fail("undo did not restore a cleared annotation")
 
     path = bridge.save()
     if not path or not Path(path).is_file():
@@ -106,8 +136,21 @@ def main() -> int:
     if not bridge.history.recent_paths(1):
         fail("the capture was not recorded in the history")
 
+    # The window picker is QML chrome over a bridge list; loading it and
+    # flipping its own flag is what catches a renamed property.
+    bridge.refreshWindows()
+    if not isinstance(bridge.windows, list):
+        fail("the window list is not a list")
+    if not root.setProperty("picking", True):
+        fail("the launcher has no picking property")
+    root.setProperty("picking", False)
+
     # Palette roles the QML binds to must exist.
     palette = bridge.palette
+    for key in ("picker", "mode", "delay"):
+        if key not in bridge.config:
+            fail(f"config is missing {key!r}")
+
     for key in ("background", "foreground", "accent", "accent2", "panel",
                 "panelAlt", "panelHover", "textOnAccent", "muted", "border",
                 "danger", "selection", "veil"):
