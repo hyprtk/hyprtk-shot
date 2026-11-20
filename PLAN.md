@@ -60,10 +60,9 @@ built-in crop, multi-monitor overlay in one window.
 
 ## v0.2 — the things a daily user will ask for
 
-- [ ] **Pin to screen** — a floating always-on-top window with the capture.
-      Hyprland cannot be asked to move a window by the client, so use
-      `hyprctl dispatch moveactive exact x y` for dragging and a float rule for
-      placement; test on a two-output layout first.
+- [x] **Pin to screen** — a frameless always-on-top window sized to the crop,
+      `float`+`pin` by a Hyprland rule; dragged by the compositor, dismissed by
+      double-click / close button / compositor close.
 - [x] **Cross-output region** — `--slurp` / `picker: slurp`; slurp spans all
       outputs and prints `x,y WxH`, the overlay stays the default.
 - [x] **Window picker** — the Window card lists `hyprctl clients` with titles

@@ -157,6 +157,26 @@ def main() -> int:
         if key not in palette:
             fail(f"palette is missing {key!r}")
 
+    # Pin to screen: the file is written, the size is the crop, and unpinning
+    # removes it again.
+    bridge.pin()
+    if not bridge.pinned:
+        fail("pin() did not report a pinned capture")
+    pinned_path = bridge.pinPath
+    if not pinned_path or not Path(pinned_path).is_file():
+        fail(f"the pinned image is missing: {pinned_path!r}")
+    else:
+        pinned_image = QImage(pinned_path)
+        if (pinned_image.width(), pinned_image.height()) != (200, 120):
+            fail(f"the pin is not the crop: {pinned_image.width()}x{pinned_image.height()}")
+    if bridge.pinWidth != 200 or bridge.pinHeight != 120:
+        fail(f"the pin size properties are wrong: {bridge.pinWidth}x{bridge.pinHeight}")
+    bridge.unpin()
+    if bridge.pinned:
+        fail("unpin() left the pin active")
+    if pinned_path and Path(pinned_path).exists():
+        fail("unpin() did not remove the pinned file")
+
     bridge.close()
     if bridge.overlayVisible:
         fail("close() left the overlay visible")
