@@ -88,6 +88,10 @@ class GrimArgvTest(unittest.TestCase):
         argv = cap.grim_argv("region", geometry="10,20 300x200")
         self.assertEqual(argv, ["grim", "-g", "10,20 300x200", "-"])
 
+    def test_region_can_grab_a_whole_output_for_the_overlay(self):
+        argv = cap.grim_argv("region", output="DP-1")
+        self.assertEqual(argv, ["grim", "-o", "DP-1", "-"])
+
     def test_window_uses_geometry(self):
         argv = cap.grim_argv("window", geometry="0,38 1200x800")
         self.assertEqual(argv[:3], ["grim", "-g", "0,38 1200x800"])
@@ -121,14 +125,23 @@ class GrimArgvTest(unittest.TestCase):
 
 
 class ResolveTargetTest(unittest.TestCase):
-    def test_region_uses_the_selection(self):
-        target = cap.resolve_target("region", region="10,20 100x50")
+    def test_region_grabs_the_focused_output_for_the_overlay(self):
+        monitor = cap.Output("DP-1", 0, 0, 3840, 1080, 1.0, True)
+        with mock.patch.object(cap, "focused_output", return_value=monitor):
+            target = cap.resolve_target("region")
+        # Region selection happens on the frozen frame, not in slurp.
         self.assertEqual(target["mode"], "region")
+        self.assertEqual(target["output"], "DP-1")
+        self.assertIsNone(target["geometry"])
+        self.assertEqual(target["logical_width"], 3840)
+
+    def test_region_accepts_an_explicit_geometry(self):
+        target = cap.resolve_target("region", region="10,20 100x50")
         self.assertEqual(target["geometry"], "10,20 100x50")
         self.assertIsNone(target["output"])
 
-    def test_region_cancelled(self):
-        with mock.patch.object(cap, "select_region", return_value=None):
+    def test_region_without_a_monitor(self):
+        with mock.patch.object(cap, "focused_output", return_value=None):
             with self.assertRaises(cap.CaptureError):
                 cap.resolve_target("region")
 
@@ -149,6 +162,25 @@ class ResolveTargetTest(unittest.TestCase):
         with mock.patch.object(cap, "focused_output", return_value=monitor):
             target = cap.resolve_target("output")
         self.assertEqual(target["output"], "DP-3")
+
+
+class SlurpTest(unittest.TestCase):
+    def test_select_region_returns_the_geometry(self):
+        result = mock.Mock(returncode=0, stdout=b"10,20 300x200\n", stderr=b"")
+        with mock.patch.object(cap, "have", return_value=True), \
+                mock.patch.object(cap, "_run", return_value=result):
+            self.assertEqual(cap.select_region(), "10,20 300x200")
+
+    def test_select_region_cancelled(self):
+        result = mock.Mock(returncode=1, stdout=b"", stderr=b"")
+        with mock.patch.object(cap, "have", return_value=True), \
+                mock.patch.object(cap, "_run", return_value=result):
+            self.assertIsNone(cap.select_region())
+
+    def test_select_region_without_slurp(self):
+        with mock.patch.object(cap, "have", return_value=False):
+            with self.assertRaises(cap.CaptureError):
+                cap.select_region()
 
 
 class CaptureTest(unittest.TestCase):

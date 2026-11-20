@@ -7,9 +7,11 @@ overlay for selection, in-place annotation, save or copy.
 
 ### Added
 
-- **Four capture modes** through `grim`: region, focused window (geometry from
-  `hyprctl clients`), focused monitor (`grim -o`), and all outputs. No portal,
-  no X11 grab, no screenshot-of-the-overlay bug.
+- **Four capture modes** through `grim`: region (the focused monitor is
+  captured, then the box is drawn on the frozen frame), focused window
+  (geometry from `hyprctl clients`), focused monitor (`grim -o`), and all
+  outputs. No portal, no X11 grab, no screenshot-of-the-overlay bug, and no
+  second selection UI.
 - **Frozen overlay**: the captured frame is displayed fullscreen, dimmed outside
   the selection, with the selection as the crop.
 - **Annotation**: pen, line, arrow, rectangle, ellipse, highlighter, numbered

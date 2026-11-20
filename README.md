@@ -14,6 +14,7 @@ prompt.
 ## What it does
 
 - **Four capture modes** — region, focused window, focused monitor, all outputs.
+  Region freezes the focused monitor; the box you draw is the crop.
 - **Frozen overlay** — the screen stops while you select, like a still frame.
 - **Annotation** — pen, line, arrow, rectangle, ellipse, highlighter, numbered
   step markers, text, blur and pixelate.

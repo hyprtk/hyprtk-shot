@@ -79,6 +79,7 @@ class Bridge(QObject):
         self._last_error = ""
         self._toast_text = ""
         self._recent = self._load_recent()
+        self.pending_region = ""
         self._rev = 0
 
     # -- properties ------------------------------------------------------
@@ -236,7 +237,7 @@ class Bridge(QObject):
 
     def _grab(self, mode: str) -> None:
         try:
-            target = resolve_target(mode)
+            target = resolve_target(mode, region=self.pending_region or None)
             data = capture(
                 mode,
                 geometry=target.get("geometry"),
@@ -265,15 +266,16 @@ class Bridge(QObject):
             return
 
         ratio = 1.0
-        geometry = target.get("geometry") or ""
-        if geometry and " " in geometry:
-            try:
-                size = geometry.split(" ", 1)[1]
-                logical_w = int(size.split("x", 1)[0])
-                if logical_w > 0:
-                    ratio = image.width() / logical_w
-            except (ValueError, IndexError):
-                ratio = 1.0
+        logical_w = target.get("logical_width")
+        if not logical_w:
+            geometry = target.get("geometry") or ""
+            if geometry and " " in geometry:
+                try:
+                    logical_w = int(geometry.split(" ", 1)[1].split("x", 1)[0])
+                except (ValueError, IndexError):
+                    logical_w = None
+        if logical_w:
+            ratio = image.width() / float(logical_w)
 
         self._session = Session(
             image=image,

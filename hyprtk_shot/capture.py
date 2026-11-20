@@ -256,9 +256,14 @@ def grim_argv(
         raise CaptureError(f"unknown capture mode: {mode}")
     argv = [program or GRIM]
     if mode in ("region", "window"):
-        if not geometry:
+        if geometry:
+            argv += ["-g", geometry]
+        elif mode == "region" and output:
+            # The overlay selects inside a single frozen monitor; grim names
+            # that monitor and does the scale conversion itself.
+            argv += ["-o", output]
+        else:
             raise CaptureError(f"{mode} capture needs a geometry")
-        argv += ["-g", geometry]
     elif mode == "output":
         # An output can be named or addressed by its logical geometry; the name
         # is preferable, because grim then applies the output's own scale.
@@ -315,18 +320,39 @@ def resolve_target(
 ) -> dict:
     """Work out what to capture, before any pixels move.
 
-    Returns a dict with ``mode``, ``geometry``, ``output`` and a human label.
-    Region selection runs slurp here, so a cancellation surfaces before the
-    overlay opens.
+    Returns a dict with ``mode``, ``geometry``, ``output``, ``label`` and
+    ``logical_width`` (the width the user sees, for stroke scaling).
+
+    **Region does not select anything here.** The overlay is the selector: this
+    grabs the focused output whole (`grim -o`), the user draws the box on the
+    frozen frame, and the selection becomes the crop. That keeps the
+    fast keypress path free of a second, separate selection UI. An explicit
+    ``region`` geometry is honoured for scripting (`--region "x,y WxH"`);
+    drawing across several outputs with slurp is a v0.2 option.
     """
     if mode not in MODES:
         raise CaptureError(f"unknown capture mode: {mode}")
 
+    monitor = focused_output()
+
     if mode == "region":
-        geometry = region or select_region()
-        if not geometry:
-            raise CaptureError("cancelled")
-        return {"mode": mode, "geometry": geometry, "output": None, "label": "Region"}
+        if region:
+            return {
+                "mode": mode,
+                "geometry": region,
+                "output": None,
+                "label": "Region",
+                "logical_width": None,
+            }
+        if monitor is None:
+            raise CaptureError("no monitor reported by Hyprland")
+        return {
+            "mode": mode,
+            "geometry": None,
+            "output": monitor.name,
+            "label": f"Region · {monitor.name}",
+            "logical_width": monitor.logical_width,
+        }
 
     if mode == "window":
         window = active_window()
@@ -337,21 +363,29 @@ def resolve_target(
             "geometry": window.geometry,
             "output": None,
             "label": window.title or window.app_class or "Window",
+            "logical_width": window.width,
         }
 
     if mode == "output":
         target = output
         if not target:
-            monitor = focused_output()
             if monitor is None:
                 raise CaptureError("no monitor reported by Hyprland")
             target = monitor.name
-        return {"mode": mode, "geometry": None, "output": target, "label": target}
+        return {
+            "mode": mode,
+            "geometry": None,
+            "output": target,
+            "label": target,
+            "logical_width": monitor.logical_width if monitor and monitor.name == target else None,
+        }
 
-    monitor = focused_output()
+    rows = outputs()
+    logical = sum(row.logical_width for row in rows) or None
     return {
         "mode": "full",
         "geometry": None,
         "output": None,
         "label": f"All outputs ({monitor.name})" if monitor else "All outputs",
+        "logical_width": logical,
     }

@@ -33,6 +33,7 @@ options:
   -d, --delay N   seconds before capturing (0-30)
   -c, --copy      copy the result to the clipboard (default from settings)
       --no-copy   do not copy
+      --region G  capture "x,y WxH" instead of selecting on the overlay
   -s, --save P    save to P (a directory, or a file name)
       --no-save   do not write a file
       --stdout    write PNG bytes to stdout, no file, no editor
@@ -51,6 +52,7 @@ class Options:
     file: str = ""
     delay: int | None = None
     copy: bool | None = None
+    region: str = ""
     save: str = ""
     no_save: bool = False
     stdout: bool = False
@@ -89,6 +91,13 @@ def parse(argv: list[str]) -> Options:
             opts.save = argv[index]
         elif arg.startswith("--save="):
             opts.save = arg.split("=", 1)[1]
+        elif arg == "--region":
+            index += 1
+            if index >= len(argv):
+                raise ValueError("--region needs a geometry")
+            opts.region = argv[index]
+        elif arg.startswith("--region="):
+            opts.region = arg.split("=", 1)[1]
         elif arg == "--no-save":
             opts.no_save = True
         elif arg == "--stdout":
@@ -135,8 +144,12 @@ def _quick_capture(opts: Options, settings: Settings) -> int:
     mode = opts.mode or str(settings.get("mode") or "region")
     if opts.cursor is not None:
         settings.set("cursor", opts.cursor)
+    if mode == "region" and not opts.region:
+        print(f'{BIN_NAME}: region capture without the editor needs --region "x,y WxH"',
+              file=sys.stderr)
+        return 2
     try:
-        target = resolve_target(mode)
+        target = resolve_target(mode, region=opts.region or None)
         data = capture(
             mode,
             geometry=target.get("geometry"),
@@ -271,7 +284,7 @@ def main(argv: list[str] | None = None) -> int:
 
     overrides = {"copy": bool(opts.copy) if opts.copy is not None else None,
                  "save": False if opts.no_save else None}
-    return run([sys.argv[0]], mode=mode, overrides=overrides)
+    return run([sys.argv[0]], mode=mode, region=opts.region, overrides=overrides)
 
 
 if __name__ == "__main__":  # pragma: no cover

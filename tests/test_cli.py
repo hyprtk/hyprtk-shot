@@ -130,14 +130,28 @@ class MainTest(unittest.TestCase):
         self.assertEqual(status, 0)
         self.assertTrue(sink.buffer.getvalue().startswith(b"\x89PNG"))
 
+    def test_region_without_a_geometry_needs_the_editor(self):
+        status, _, err = self.run_cli("region", "--no-edit")
+        self.assertEqual(status, 2)
+        self.assertIn("--region", err)
+
+    def test_region_with_a_geometry_captures(self):
+        target = self.dir / "region.png"
+        with mock.patch.object(cli, "resolve_target", return_value={"mode": "region", "geometry": "0,0 100x50", "output": None, "label": "Region", "logical_width": 100}) as resolve, \
+                mock.patch.object(cli, "capture", return_value=PNG):
+            status, _, _ = self.run_cli("region", "--no-edit", "--save", str(target), "--region", "0,0 100x50")
+        self.assertEqual(status, 0)
+        self.assertTrue(target.is_file())
+        self.assertEqual(resolve.call_args.kwargs.get("region"), "0,0 100x50")
+
     def test_cancelled_region_exits_three(self):
         with mock.patch.object(cli, "resolve_target", side_effect=cli.CaptureError("cancelled")):
-            status, _, _ = self.run_cli("region", "--no-edit")
+            status, _, _ = self.run_cli("region", "--no-edit", "--region", "0,0 10x10")
         self.assertEqual(status, 3)
 
     def test_capture_error_exits_one(self):
         with mock.patch.object(cli, "resolve_target", side_effect=cli.CaptureError("grim is not installed")):
-            status, _, err = self.run_cli("region", "--no-edit")
+            status, _, err = self.run_cli("region", "--no-edit", "--region", "0,0 10x10")
         self.assertEqual(status, 1)
         self.assertIn("grim is not installed", err)
 
