@@ -48,6 +48,18 @@ class NudgeTest(unittest.TestCase):
         self.assertEqual((x, y, w, h), (0, 0, 400, 300))
 
 
+class FullFrameTest(unittest.TestCase):
+    def test_the_default_selection_is_full_frame(self):
+        self.assertTrue(selection.is_full_frame(0, 0, 640, 400, 640, 400))
+
+    def test_a_drawn_box_is_not(self):
+        self.assertFalse(selection.is_full_frame(10, 10, 200, 100, 640, 400))
+        self.assertFalse(selection.is_full_frame(0, 0, 639, 400, 640, 400))
+
+    def test_mode_switch_rounding_is_tolerated(self):
+        self.assertTrue(selection.is_full_frame(0.0, 0.0, 639.7, 400.2, 640, 400))
+
+
 class ResizeTest(unittest.TestCase):
     def test_east_edge_moves_only_the_width(self):
         self.assertEqual(selection.resize("e", 100, 50, 200, 100, 250, 999, 640, 480),

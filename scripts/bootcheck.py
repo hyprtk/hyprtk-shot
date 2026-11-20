@@ -26,11 +26,12 @@ os.environ["HYPRTK_SHOT_DIR"] = os.path.join(_SANDBOX, "pictures")
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from PySide6.QtCore import QTimer, qInstallMessageHandler  # noqa: E402
-from PySide6.QtGui import QColor, QImage, QPainter  # noqa: E402
+from PySide6.QtCore import QEvent, QPointF, QTimer, Qt, qInstallMessageHandler  # noqa: E402
+from PySide6.QtGui import QColor, QImage, QMouseEvent, QPainter, QPointingDevice  # noqa: E402
 
 from hyprtk_shot.annotate import Shape  # noqa: E402
 from hyprtk_shot.app import create  # noqa: E402
+from hyprtk_shot.canvas import CaptureCanvas  # noqa: E402
 
 problems: list[str] = []
 
@@ -79,6 +80,27 @@ def main() -> int:
         fail(f"imageInfo is wrong: {bridge.imageInfo}")
     if bridge.selectionInfo.get("width") != 640:
         fail(f"the default selection is not the whole image: {bridge.selectionInfo}")
+
+    # The default selection is the whole frame, and a drag on it must draw a new
+    # box — not move the frame (which cannot move) and save everything.
+    canvas = root.findChildren(CaptureCanvas)[0]
+    canvas.setWidth(640)
+    canvas.setHeight(400)
+    canvas.setVisible(True)
+
+    def mouse(kind, ix, iy, buttons):
+        x, y = canvas.to_item(ix, iy)
+        point = QPointF(x, y)
+        return QMouseEvent(kind, point, point, Qt.LeftButton, buttons, Qt.NoModifier,
+                           QPointingDevice.primaryPointingDevice())
+
+    canvas.mousePressEvent(mouse(QEvent.MouseButtonPress, 100, 100, Qt.LeftButton))
+    canvas.mouseMoveEvent(mouse(QEvent.MouseMove, 200, 180, Qt.LeftButton))
+    canvas.mouseMoveEvent(mouse(QEvent.MouseMove, 300, 250, Qt.LeftButton))
+    canvas.mouseReleaseEvent(mouse(QEvent.MouseButtonRelease, 300, 250, Qt.NoButton))
+    dragged = bridge.selectionInfo
+    if (dragged.get("x"), dragged.get("y"), dragged.get("width"), dragged.get("height")) != (100, 100, 200, 150):
+        fail(f"a drag on the default selection did not draw a box: {dragged}")
 
     # Selection maths the overlay relies on: arrow-key nudging, clamped at the
     # edge, and one undo step per action.
