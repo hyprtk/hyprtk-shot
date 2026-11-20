@@ -168,6 +168,22 @@ class ResolveTargetTest(unittest.TestCase):
             target = cap.resolve_target("window", window="0xdead")
         self.assertEqual(target["geometry"], "0,0 400x300")
 
+    def test_windows_carry_their_workspace(self):
+        data = [{"address": "0x1", "at": [0, 43], "size": [800, 600], "class": "a",
+                 "title": "A", "focusHistoryID": 0, "workspace": {"id": 2, "name": "2"}},
+                {"address": "0x2", "at": [0, 43], "size": [800, 600], "class": "b",
+                 "title": "B", "focusHistoryID": 1, "workspace": {"id": 5, "name": "5"}}]
+        with mock.patch.object(cap, "_hyprctl_json", return_value=data):
+            rows = cap.windows()
+        self.assertEqual([row.workspace for row in rows], [2, 5])
+        self.assertEqual(rows[0].as_row()["workspace"], 2)
+
+    def test_active_workspace(self):
+        with mock.patch.object(cap, "_hyprctl_json", return_value={"id": 3, "name": "3"}):
+            self.assertEqual(cap.active_workspace(), 3)
+        with mock.patch.object(cap, "_hyprctl_json", return_value=None):
+            self.assertEqual(cap.active_workspace(), 0)
+
     def test_window_without_a_window(self):
         with mock.patch.object(cap, "active_window", return_value=None):
             with self.assertRaises(cap.CaptureError):

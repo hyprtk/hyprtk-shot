@@ -81,6 +81,15 @@ def main() -> int:
     if bridge.selectionInfo.get("width") != 640:
         fail(f"the default selection is not the whole image: {bridge.selectionInfo}")
 
+    # Nothing is chosen yet: the tools are hidden and Enter must not save the
+    # whole screen.
+    if bridge.selectionReady:
+        fail("annotations are enabled before a region is chosen")
+    before_files = len(bridge.history.recent_paths(10))
+    bridge.saveAndCopy()
+    if len(bridge.history.recent_paths(10)) != before_files:
+        fail("saveAndCopy captured the whole frame with nothing selected")
+
     # The default selection is the whole frame, and a drag on it must draw a new
     # box — not move the frame (which cannot move) and save everything.
     canvas = root.findChildren(CaptureCanvas)[0]
@@ -101,6 +110,14 @@ def main() -> int:
     dragged = bridge.selectionInfo
     if (dragged.get("x"), dragged.get("y"), dragged.get("width"), dragged.get("height")) != (100, 100, 200, 150):
         fail(f"a drag on the default selection did not draw a box: {dragged}")
+    if not bridge.selectionReady:
+        fail("the annotation tools did not unlock after a region was chosen")
+    if str(bridge.tool) != "cursor":
+        fail(f"the tool was left at {bridge.tool!r} after a region was drawn")
+    bridge.selectAll()
+    if not bridge.selectionReady:
+        fail("select-all did not unlock the tools")
+    bridge.setSelection(20, 20, 200, 120)
 
     # Selection maths the overlay relies on: arrow-key nudging, clamped at the
     # edge, and one undo step per action.
@@ -163,6 +180,10 @@ def main() -> int:
     bridge.refreshWindows()
     if not isinstance(bridge.windows, list):
         fail("the window list is not a list")
+    if bridge.windows:
+        workspace = bridge.windows[0]["workspace"]
+        if any(row["workspace"] != workspace for row in bridge.windows):
+            fail("the window picker mixes windows from different workspaces")
     if not root.setProperty("picking", True):
         fail("the launcher has no picking property")
     root.setProperty("picking", False)
