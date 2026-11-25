@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — documentation
+
+- README: v09 suite banner, palette badges and the twelve-repository suite
+  list (screenshot, recorder and system manager were missing).
+
 ## 0.2.4 — 2026-11-23
 
 ### Fixed
