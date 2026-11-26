@@ -161,11 +161,19 @@ class ResolveTargetTest(unittest.TestCase):
         self.assertEqual(target["geometry"], "10,20 500x400")
         self.assertEqual(target["label"], "Picked")
 
-    def test_closed_window_falls_back_to_the_focused_one(self):
+    def test_a_closed_explicit_window_is_an_error_not_a_substitution(self):
+        """Picking a window that vanished must not silently capture another."""
         focused = cap.Window("0x1", "Focused", "app", 0, 0, 400, 300, 0, False, 0)
         with mock.patch.object(cap, "windows", return_value=[focused]), \
                 mock.patch.object(cap, "active_window", return_value=focused):
-            target = cap.resolve_target("window", window="0xdead")
+            with self.assertRaises(cap.CaptureError):
+                cap.resolve_target("window", window="0xdead")
+
+    def test_no_pick_uses_the_focused_window(self):
+        focused = cap.Window("0x1", "Focused", "app", 0, 0, 400, 300, 0, False, 0)
+        with mock.patch.object(cap, "windows", return_value=[focused]), \
+                mock.patch.object(cap, "active_window", return_value=focused):
+            target = cap.resolve_target("window")
         self.assertEqual(target["geometry"], "0,0 400x300")
 
     def test_windows_carry_their_workspace(self):
